@@ -14,15 +14,15 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(mod_k8s_api).
+-module(ekka_app).
 
--include_lib("inets/include/httpd.hrl").
+-behaviour(application).
 
--export([do/1]).
+-export([start/2, stop/1]).
 
-do(_Req = #mod{method = "GET", request_uri = "/api/v1/namespaces/" ++ _Uri}) ->
-    Response = {200, "{\"subsets\": [{\"addresses\": [{\"ip\": \"127.0.0.1\"}]}]}"},
-    {proceed, [{response, Response}]};
+start(_Type, _Args) ->
+    ekka_sup:start_link().
 
-do(Req) -> {proceed, Req#mod.data}.
+stop(_State) ->
+	ok.
 

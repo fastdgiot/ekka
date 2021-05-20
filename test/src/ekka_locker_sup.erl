@@ -14,15 +14,24 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(mod_k8s_api).
+-module(ekka_locker_sup).
 
--include_lib("inets/include/httpd.hrl").
+-behaviour(supervisor).
 
--export([do/1]).
+-export([start_link/0]).
 
-do(_Req = #mod{method = "GET", request_uri = "/api/v1/namespaces/" ++ _Uri}) ->
-    Response = {200, "{\"subsets\": [{\"addresses\": [{\"ip\": \"127.0.0.1\"}]}]}"},
-    {proceed, [{response, Response}]};
+-export([init/1]).
 
-do(Req) -> {proceed, Req#mod.data}.
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+init([]) ->
+    Locker = #{id       => ekka_locker,
+               start    => {ekka_locker, start_link, []},
+               restart  => permanent,
+               shutdown => 5000,
+               type     => worker,
+               modules  => [ekka_locker]
+              },
+    {ok, {{one_for_one, 100, 3600}, [Locker]}}.
 
