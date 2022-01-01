@@ -30,4 +30,3 @@ rebar.lock
 TAGS
 _checkouts/
 TEST-*.xml
-concuerror_report.txt

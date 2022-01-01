@@ -18,11 +18,7 @@
 
 -include("ekka.hrl").
 
--export([ enabled/0
-        , run/1
-        , unregister_node/0
-        , core_node_discovery_callback/0
-        ]).
+-export([enabled/0 , run/1, unregister_node/0]).
 
 -export([acquire_lock/1, release_lock/1]).
 
@@ -33,7 +29,7 @@
 enabled() ->
     case ekka:env(cluster_discovery) of
         {ok, {manual, _}} -> false;
-        {ok, _Strategy}   -> mria_config:role() =:= core;
+        {ok, _Strategy}   -> true;
         undefined         -> false
     end.
 
@@ -68,7 +64,7 @@ wait_application_ready(App, Retries) ->
 
 maybe_run_again(App) ->
     %% Check if the node joined cluster?
-    case mria_mnesia:is_node_in_cluster() of
+    case ekka_mnesia:is_node_in_cluster() of
         true  -> ok;
         false -> timer:sleep(5000),
                  run(App)
@@ -137,7 +133,7 @@ discover_and_join(Mod, Options) ->
 maybe_join([]) ->
     ignore;
 maybe_join(Nodes) ->
-    case mria_mnesia:is_node_in_cluster() of
+    case ekka_mnesia:is_node_in_cluster() of
         true  -> ignore;
         false -> join_with(find_oldest_node(Nodes))
     end.
@@ -152,33 +148,19 @@ join_with(Node) ->
 find_oldest_node([Node]) ->
     Node;
 find_oldest_node(Nodes) ->
-    case rpc:multicall(Nodes, mria_membership, local_member, [], 30000) of
+    case rpc:multicall(Nodes, ekka_membership, local_member, [], 30000) of
         {ResL, []} ->
             case [M || M <- ResL, is_record(M, member)] of
                 [] -> ?LOG(error, "Bad members found on nodes ~p: ~p", [Nodes, ResL]),
                       false;
                 Members ->
-                    (mria_membership:oldest(Members))#member.node
+                    (ekka_membership:oldest(Members))#member.node
             end;
         {ResL, BadNodes} ->
             ?LOG(error, "Bad nodes found: ~p, ResL: ", [BadNodes, ResL]), false
    end.
 
-%% @doc Core node discovery used by mria by replicant nodes to find
-%% the core ones.
--spec(core_node_discovery_callback() -> [node()]).
-core_node_discovery_callback() ->
-    with_strategy(
-      fun(Mod, Opts) ->
-              case Mod:discover(Opts) of
-                  {ok, Nodes} ->
-                      Nodes;
-                  {error, Reason} ->
-                      ?LOG(error, "Core node discovery error: ~p", [Reason]),
-                      []
-              end
-      end).
-
 log_error(Format, {error, Reason}) ->
     ?LOG(error, Format ++ " error: ~p", [Reason]);
 log_error(_Format, _Ok) -> ok.
+

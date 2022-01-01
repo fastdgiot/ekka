@@ -21,9 +21,8 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--define(OPTIONS, [{server, ["http://127.0.0.1:2379"]},
+-define(OPTIONS, [{server, "http://127.0.0.1:2379"},
                   {prefix, "emqxcl"},
-                  {version, v2},
                   {node_ttl, 60}
                  ]).
 
@@ -33,9 +32,8 @@ init_per_testcase(_TestCase, Config) ->
     ok = meck:new(httpc, [non_strict, passthrough, no_history]),
     Config.
 
-end_per_testcase(TestCase, Config) ->
+end_per_testcase(_TestCase, Config) ->
     ok = meck:unload(httpc),
-    ekka_ct:cleanup(TestCase),
     Config.
 
 t_discover(_Config) ->
@@ -77,3 +75,4 @@ t_etcd_set_node_key(_) ->
                                              {ok, 200, <<"{\"errorCode\": 0}">>}
                                      end),
     {ok, #{<<"errorCode">> := 0}} = ekka_cluster_etcd:etcd_set_node_key(?OPTIONS).
+
